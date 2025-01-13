@@ -7,7 +7,6 @@ const corsHeaders = {
 
 async function postToLinkedIn(content: string) {
   console.log('Attempting to post to LinkedIn...');
-  console.log('Using LinkedIn User ID:', Deno.env.get('LINKEDIN_USER_ID'));
   
   const url = 'https://api.linkedin.com/v2/ugcPosts';
   const accessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
@@ -17,8 +16,10 @@ async function postToLinkedIn(content: string) {
     throw new Error('LinkedIn credentials not properly configured');
   }
 
+  console.log('Using LinkedIn User ID:', userId);
+
   const body = {
-    author: `urn:li:member:${userId}`, // Changed from person to member
+    author: `urn:li:person:${userId}`,
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
@@ -42,6 +43,7 @@ async function postToLinkedIn(content: string) {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202304',
       },
       body: JSON.stringify(body),
     });
