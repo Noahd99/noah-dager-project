@@ -9,18 +9,13 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
   console.log('Attempting to post to LinkedIn...');
   
   const accessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
-  const userId = Deno.env.get('LINKEDIN_USER_ID');
+  const userId = '77u0zgzhtd4zxb';  // Updated client ID
 
   if (!accessToken || !userId) {
     throw new Error('LinkedIn credentials not properly configured');
   }
 
   console.log('Using LinkedIn User ID:', userId);
-
-  // Validate userId format
-  if (!/^\d+$/.test(userId)) {
-    throw new Error('LinkedIn User ID must be a numeric string');
-  }
 
   let mediaId: string | undefined;
   
@@ -40,7 +35,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
         body: JSON.stringify({
           registerUploadRequest: {
             recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
-            owner: `urn:li:member:${userId}`,
+            owner: `urn:li:person:${userId}`,
             serviceRelationships: [{
               relationshipType: "OWNER",
               identifier: "urn:li:userGeneratedContent"
@@ -89,7 +84,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
   }
 
   const postBody = {
-    author: `urn:li:member:${userId}`,
+    author: `urn:li:person:${userId}`,
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
