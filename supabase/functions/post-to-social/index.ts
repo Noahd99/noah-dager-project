@@ -1,10 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createHmac } from "https://deno.land/std@0.182.0/node/crypto.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { create as createHmac } from "https://deno.land/std@0.168.0/hash/hmac.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 async function postToLinkedIn(content: string) {
   const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
@@ -28,19 +28,19 @@ async function postToLinkedIn(content: string) {
         'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
       }
     }),
-  })
+  });
 
   if (!response.ok) {
-    const error = await response.json()
-    throw new Error(`LinkedIn API error: ${JSON.stringify(error)}`)
+    const error = await response.json();
+    throw new Error(`LinkedIn API error: ${JSON.stringify(error)}`);
   }
 
-  return response.json()
+  return response.json();
 }
 
 async function postToTwitter(content: string) {
-  const url = 'https://api.twitter.com/2/tweets'
-  const method = 'POST'
+  const url = 'https://api.twitter.com/2/tweets';
+  const method = 'POST';
   
   const oauthParams = {
     oauth_consumer_key: Deno.env.get('TWITTER_CONSUMER_KEY')!,
@@ -49,28 +49,37 @@ async function postToTwitter(content: string) {
     oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
     oauth_token: Deno.env.get('TWITTER_ACCESS_TOKEN')!,
     oauth_version: '1.0',
-  }
+  };
 
-  const signingKey = `${encodeURIComponent(Deno.env.get('TWITTER_CONSUMER_SECRET')!)}&${encodeURIComponent(Deno.env.get('TWITTER_ACCESS_TOKEN_SECRET')!)}`
+  const signingKey = `${encodeURIComponent(Deno.env.get('TWITTER_CONSUMER_SECRET')!)}&${encodeURIComponent(Deno.env.get('TWITTER_ACCESS_TOKEN_SECRET')!)}`;
   
   const baseString = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(
     Object.entries(oauthParams)
       .sort()
       .map(([k, v]) => `${k}=${v}`)
       .join('&')
-  )}`
+  )}`;
 
-  const signature = createHmac('sha1', signingKey)
-    .update(baseString)
-    .digest('base64')
+  const encoder = new TextEncoder();
+  const key = encoder.encode(signingKey);
+  const message = encoder.encode(baseString);
+  const hmacKey = await crypto.subtle.importKey(
+    'raw',
+    key,
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', hmacKey, message);
+  const base64Signature = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
   const authHeader = 'OAuth ' + Object.entries({
     ...oauthParams,
-    oauth_signature: signature,
+    oauth_signature: base64Signature,
   })
     .sort()
     .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
-    .join(', ')
+    .join(', ');
 
   const response = await fetch(url, {
     method: 'POST',
@@ -79,42 +88,42 @@ async function postToTwitter(content: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ text: content }),
-  })
+  });
 
   if (!response.ok) {
-    const error = await response.json()
-    throw new Error(`Twitter API error: ${JSON.stringify(error)}`)
+    const error = await response.json();
+    throw new Error(`Twitter API error: ${JSON.stringify(error)}`);
   }
 
-  return response.json()
+  return response.json();
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { platform, content } = await req.json()
+    const { platform, content } = await req.json();
 
-    let result
+    let result;
     if (platform === 'linkedin') {
-      result = await postToLinkedIn(content)
+      result = await postToLinkedIn(content);
     } else if (platform === 'twitter') {
-      result = await postToTwitter(content)
+      result = await postToTwitter(content);
     } else {
-      throw new Error(`Unsupported platform: ${platform}`)
+      throw new Error(`Unsupported platform: ${platform}`);
     }
 
     return new Response(
       JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    );
   } catch (error) {
-    console.error('Error in post-to-social function:', error)
+    console.error('Error in post-to-social function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    );
   }
-})
+});
