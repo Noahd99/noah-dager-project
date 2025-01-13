@@ -29,7 +29,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
-          'LinkedIn-Version': '202308',  // Updated to a stable version
+          'LinkedIn-Version': '202411',  // Updated to latest version
         },
         body: JSON.stringify({
           initializeUploadRequest: {
@@ -111,7 +111,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'LinkedIn-Version': '202308',  // Updated to a stable version
+        'LinkedIn-Version': '202411',  // Updated to latest version
       },
       body: JSON.stringify(postBody),
     });
