@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Trash2, Pencil } from "lucide-react";
+import ProjectForm from "./ProjectForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Project {
   id: string;
@@ -17,11 +22,8 @@ interface Project {
 const ProjectsPanel = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newProject, setNewProject] = useState({
-    title: "",
-    description: "",
-    image_url: "",
-  });
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,16 +49,15 @@ const ProjectsPanel = () => {
     }
   };
 
-  const handleAddProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProject.title) return;
-
+  const handleAddProject = async (projectData: {
+    title: string;
+    description: string;
+    image_url: string;
+  }) => {
     try {
       const { error } = await supabase.from("projects").insert([
         {
-          title: newProject.title,
-          description: newProject.description,
-          image_url: newProject.image_url,
+          ...projectData,
           order_index: projects.length,
         },
       ]);
@@ -65,12 +66,41 @@ const ProjectsPanel = () => {
       toast({
         title: "Project added successfully",
       });
-      setNewProject({ title: "", description: "", image_url: "" });
+      setShowAddDialog(false);
       fetchProjects();
     } catch (error) {
       console.error("Error adding project:", error);
       toast({
         title: "Error adding project",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateProject = async (
+    id: string,
+    projectData: {
+      title: string;
+      description: string;
+      image_url: string;
+    }
+  ) => {
+    try {
+      const { error } = await supabase
+        .from("projects")
+        .update(projectData)
+        .eq("id", id);
+      if (error) throw error;
+
+      toast({
+        title: "Project updated successfully",
+      });
+      setEditingProject(null);
+      fetchProjects();
+    } catch (error) {
+      console.error("Error updating project:", error);
+      toast({
+        title: "Error updating project",
         variant: "destructive",
       });
     }
@@ -104,30 +134,7 @@ const ProjectsPanel = () => {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleAddProject} className="space-y-4">
-        <Input
-          placeholder="Project Title"
-          value={newProject.title}
-          onChange={(e) =>
-            setNewProject({ ...newProject, title: e.target.value })
-          }
-        />
-        <Textarea
-          placeholder="Project Description"
-          value={newProject.description}
-          onChange={(e) =>
-            setNewProject({ ...newProject, description: e.target.value })
-          }
-        />
-        <Input
-          placeholder="Image URL"
-          value={newProject.image_url}
-          onChange={(e) =>
-            setNewProject({ ...newProject, image_url: e.target.value })
-          }
-        />
-        <Button type="submit">Add Project</Button>
-      </form>
+      <Button onClick={() => setShowAddDialog(true)}>Add New Project</Button>
 
       <div className="space-y-4">
         {projects.map((project) => (
@@ -135,7 +142,7 @@ const ProjectsPanel = () => {
             key={project.id}
             className="flex items-start justify-between p-4 border rounded-lg"
           >
-            <div>
+            <div className="space-y-2">
               <h3 className="font-medium">{project.title}</h3>
               <p className="text-sm text-gray-600">{project.description}</p>
               {project.image_url && (
@@ -146,16 +153,51 @@ const ProjectsPanel = () => {
                 />
               )}
             </div>
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={() => handleDeleteProject(project.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setEditingProject(project)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={() => handleDeleteProject(project.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>
+
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Project</DialogTitle>
+          </DialogHeader>
+          <ProjectForm onSubmit={handleAddProject} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={editingProject !== null}
+        onOpenChange={(open) => !open && setEditingProject(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+          </DialogHeader>
+          {editingProject && (
+            <ProjectForm
+              initialData={editingProject}
+              onSubmit={(data) => handleUpdateProject(editingProject.id, data)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
