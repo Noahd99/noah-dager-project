@@ -24,16 +24,21 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
     
     try {
       // First, register the image upload
-      const registerUpload = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
+      const registerUpload = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
-          'LinkedIn-Version': '202411',  // Updated to latest version
+          'X-Restli-Protocol-Version': '2.0.0',
         },
         body: JSON.stringify({
-          initializeUploadRequest: {
+          registerUploadRequest: {
+            recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
             owner: `urn:li:person:${userId}`,
+            serviceRelationships: [{
+              relationshipType: "OWNER",
+              identifier: "urn:li:userGeneratedContent"
+            }]
           }
         })
       });
@@ -69,7 +74,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
         throw new Error(`Failed to upload image: ${errorText}`);
       }
 
-      mediaId = uploadData.value.image;
+      mediaId = uploadData.value.asset;
       console.log('Successfully uploaded image, got media ID:', mediaId);
     } catch (error) {
       console.error('Error during image upload:', error);
@@ -77,41 +82,45 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
     }
   }
 
-  // New Posts API structure
+  // Create the post using v2 API
   const postBody: any = {
     author: `urn:li:person:${userId}`,
-    commentary: content,
-    visibility: "PUBLIC",
-    distribution: {
-      feedDistribution: "MAIN_FEED",
-      targetEntities: [],
-      thirdPartyDistributionChannels: []
-    },
     lifecycleState: "PUBLISHED",
-    isReshareDisabledByAuthor: false
+    specificContent: {
+      "com.linkedin.ugc.ShareContent": {
+        shareCommentary: {
+          text: content
+        },
+        shareMediaCategory: mediaId ? "IMAGE" : "NONE"
+      }
+    },
+    visibility: {
+      "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+    }
   };
 
   if (mediaId) {
-    postBody.content = {
-      media: {
-        id: mediaId,
-        title: {
-          text: "Project Image"
-        },
-        altText: "Project Image"
+    postBody.specificContent["com.linkedin.ugc.ShareContent"].media = [{
+      status: "READY",
+      description: {
+        text: "Project Image"
+      },
+      media: mediaId,
+      title: {
+        text: "Project Image"
       }
-    };
+    }];
   }
 
   console.log('LinkedIn post payload:', JSON.stringify(postBody, null, 2));
 
   try {
-    const response = await fetch('https://api.linkedin.com/rest/posts', {
+    const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'LinkedIn-Version': '202411',  // Updated to latest version
+        'X-Restli-Protocol-Version': '2.0.0',
       },
       body: JSON.stringify(postBody),
     });
