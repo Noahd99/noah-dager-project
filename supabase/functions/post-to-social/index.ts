@@ -103,6 +103,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
 
   // Create the post
   try {
+    console.log('Sending POST request to LinkedIn with body:', JSON.stringify(postBody, null, 2));
     const response = await fetch(baseUrl, {
       method: 'POST',
       headers,
