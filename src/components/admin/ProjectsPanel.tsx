@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, Pencil } from "lucide-react";
 import ProjectForm from "./ProjectForm";
+import SocialMediaContent from "./SocialMediaContent";
 import {
   Dialog,
   DialogContent,
@@ -140,34 +141,44 @@ const ProjectsPanel = () => {
         {projects.map((project) => (
           <div
             key={project.id}
-            className="flex items-start justify-between p-4 border rounded-lg"
+            className="flex flex-col space-y-4 p-4 border rounded-lg"
           >
-            <div className="space-y-2">
-              <h3 className="font-medium">{project.title}</h3>
-              <p className="text-sm text-gray-600">{project.description}</p>
-              {project.image_url && (
-                <img
-                  src={project.image_url}
-                  alt={project.title}
-                  className="mt-2 h-20 w-auto object-cover rounded"
-                />
-              )}
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <h3 className="font-medium">{project.title}</h3>
+                <p className="text-sm text-gray-600">{project.description}</p>
+                {project.image_url && (
+                  <img
+                    src={project.image_url}
+                    alt={project.title}
+                    className="mt-2 h-20 w-auto object-cover rounded"
+                  />
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setEditingProject(project)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => handleDeleteProject(project.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setEditingProject(project)}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={() => handleDeleteProject(project.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+            
+            <div className="pt-4 border-t">
+              <SocialMediaContent
+                projectId={project.id}
+                projectTitle={project.title}
+                projectDescription={project.description || ""}
+              />
             </div>
           </div>
         ))}
