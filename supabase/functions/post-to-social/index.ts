@@ -16,25 +16,27 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
     throw new Error('LinkedIn credentials not properly configured');
   }
 
-  const baseUrl = 'https://api.linkedin.com/rest/posts';
+  const baseUrl = 'https://api.linkedin.com/v2/ugcPosts';
   const headers = {
     'Authorization': `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
-    'LinkedIn-Version': '202411',
     'X-Restli-Protocol-Version': '2.0.0',
   };
 
   const postBody: any = {
     author: `urn:li:person:${userId}`,
-    commentary: content,
-    visibility: "PUBLIC",
-    distribution: {
-      feedDistribution: "MAIN_FEED",
-      targetEntities: [],
-      thirdPartyDistributionChannels: []
-    },
     lifecycleState: "PUBLISHED",
-    isReshareDisabledByAuthor: false
+    specificContent: {
+      "com.linkedin.ugc.ShareContent": {
+        shareCommentary: {
+          text: content
+        },
+        shareMediaCategory: "NONE"
+      }
+    },
+    visibility: {
+      "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+    }
   };
 
   if (imageUrl && imageUrl.trim() !== '') {
@@ -49,7 +51,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
       const imageBlob = await imageResponse.blob();
 
       // Register media upload
-      const registerResponse = await fetch('https://api.linkedin.com/rest/assets?action=registerUpload', {
+      const registerResponse = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -89,12 +91,17 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
       }
 
       // Add media to post body
-      postBody.content = {
-        media: {
-          id: uploadData.value.asset,
-          title: "Project Image",
+      postBody.specificContent["com.linkedin.ugc.ShareContent"].shareMediaCategory = "IMAGE";
+      postBody.specificContent["com.linkedin.ugc.ShareContent"].media = [{
+        status: "READY",
+        description: {
+          text: "Project Image"
+        },
+        media: uploadData.value.asset,
+        title: {
+          text: "Project Image"
         }
-      };
+      }];
     } catch (error) {
       console.error('Error during image upload:', error);
       throw error;
