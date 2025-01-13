@@ -1,9 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
 async function postToLinkedIn(content: string, imageUrl?: string) {
   console.log('Attempting to post to LinkedIn...');
@@ -23,26 +24,28 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
     'X-Restli-Protocol-Version': '2.0.0',
   };
 
-  // Basic post structure for text-only posts
-  const postBody: any = {
+  const requestBody = {
     author: `urn:li:person:${userId}`,
-    commentary: content,
-    visibility: "PUBLIC",
-    distribution: {
-      feedDistribution: "MAIN_FEED",
-      targetEntities: [],
-      thirdPartyDistributionChannels: []
-    },
     lifecycleState: "PUBLISHED",
-    isReshareDisabledByAuthor: false
+    specificContent: {
+      "com.linkedin.ugc.ShareContent": {
+        shareCommentary: {
+          text: content
+        },
+        shareMediaCategory: "NONE"
+      }
+    },
+    visibility: {
+      "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+    }
   };
 
   try {
-    console.log('Sending POST request to LinkedIn');
+    console.log('Sending POST request to LinkedIn with body:', JSON.stringify(requestBody));
     const response = await fetch(baseUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify(postBody)
+      body: JSON.stringify(requestBody)
     });
 
     const responseText = await response.text();
