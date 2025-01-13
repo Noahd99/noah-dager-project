@@ -6,35 +6,60 @@ const corsHeaders = {
 };
 
 async function postToLinkedIn(content: string) {
-  const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${Deno.env.get('LINKEDIN_ACCESS_TOKEN')}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      author: `urn:li:person:${Deno.env.get('LINKEDIN_USER_ID')}`,
-      lifecycleState: 'PUBLISHED',
-      specificContent: {
-        'com.linkedin.ugc.ShareContent': {
-          shareCommentary: {
-            text: content
-          },
-          shareMediaCategory: 'NONE'
-        }
-      },
-      visibility: {
-        'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
-      }
-    }),
-  });
+  console.log('Attempting to post to LinkedIn...');
+  console.log('Using LinkedIn User ID:', Deno.env.get('LINKEDIN_USER_ID'));
+  
+  const url = 'https://api.linkedin.com/v2/ugcPosts';
+  const accessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
+  const userId = Deno.env.get('LINKEDIN_USER_ID');
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`LinkedIn API error: ${JSON.stringify(error)}`);
+  if (!accessToken || !userId) {
+    throw new Error('LinkedIn credentials not properly configured');
   }
 
-  return response.json();
+  const body = {
+    author: `urn:li:person:${userId}`,
+    lifecycleState: 'PUBLISHED',
+    specificContent: {
+      'com.linkedin.ugc.ShareContent': {
+        shareCommentary: {
+          text: content
+        },
+        shareMediaCategory: 'NONE'
+      }
+    },
+    visibility: {
+      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
+    }
+  };
+
+  console.log('LinkedIn request payload:', JSON.stringify(body, null, 2));
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const responseText = await response.text();
+    console.log('LinkedIn API Response Status:', response.status);
+    console.log('LinkedIn API Response Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+    console.log('LinkedIn API Response Body:', responseText);
+
+    if (!response.ok) {
+      throw new Error(`LinkedIn API error (${response.status}): ${responseText}`);
+    }
+
+    return response.status === 201 ? { success: true } : JSON.parse(responseText);
+  } catch (error) {
+    console.error('Error in postToLinkedIn:', error);
+    throw error;
+  }
 }
 
 async function postToTwitter(content: string) {
@@ -111,7 +136,10 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Received request to post-to-social function');
     const { platform, content } = await req.json();
+    console.log('Platform:', platform);
+    console.log('Content length:', content?.length);
 
     let result;
     if (platform === 'linkedin') {
@@ -124,13 +152,27 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
   } catch (error) {
     console.error('Error in post-to-social function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        error: error.message,
+        details: error.toString()
+      }),
+      { 
+        status: 500, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
   }
 });
