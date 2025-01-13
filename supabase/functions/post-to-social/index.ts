@@ -9,13 +9,13 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
   console.log('Attempting to post to LinkedIn...');
   
   const accessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
-  const userId = '77u0zgzhtd4zxb';  // Updated client ID
+  const userId = '506763489';  // LinkedIn member ID
 
   if (!accessToken || !userId) {
     throw new Error('LinkedIn credentials not properly configured');
   }
 
-  console.log('Using LinkedIn User ID:', userId);
+  console.log('Using LinkedIn Member ID:', userId);
 
   let mediaId: string | undefined;
   
@@ -24,22 +24,16 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
     
     try {
       // First, register the image upload
-      const registerUpload = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+      const registerUpload = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
-          'X-Restli-Protocol-Version': '2.0.0',
-          'LinkedIn-Version': '202304',
+          'LinkedIn-Version': '202311',
         },
         body: JSON.stringify({
-          registerUploadRequest: {
-            recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+          initializeUploadRequest: {
             owner: `urn:li:person:${userId}`,
-            serviceRelationships: [{
-              relationshipType: "OWNER",
-              identifier: "urn:li:userGeneratedContent"
-            }]
           }
         })
       });
@@ -61,7 +55,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
       const imageBlob = await imageResponse.blob();
 
       // Upload the image to LinkedIn
-      const upload = await fetch(uploadData.value.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl, {
+      const upload = await fetch(uploadData.value.uploadUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -75,7 +69,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
         throw new Error(`Failed to upload image: ${errorText}`);
       }
 
-      mediaId = uploadData.value.asset;
+      mediaId = uploadData.value.image;
       console.log('Successfully uploaded image, got media ID:', mediaId);
     } catch (error) {
       console.error('Error during image upload:', error);
@@ -83,45 +77,41 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
     }
   }
 
-  const postBody = {
+  // New Posts API structure
+  const postBody: any = {
     author: `urn:li:person:${userId}`,
-    lifecycleState: 'PUBLISHED',
-    specificContent: {
-      'com.linkedin.ugc.ShareContent': {
-        shareCommentary: {
-          text: content
-        },
-        shareMediaCategory: mediaId ? 'IMAGE' : 'NONE'
-      }
+    commentary: content,
+    visibility: "PUBLIC",
+    distribution: {
+      feedDistribution: "MAIN_FEED",
+      targetEntities: [],
+      thirdPartyDistributionChannels: []
     },
-    visibility: {
-      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
-    }
+    lifecycleState: "PUBLISHED",
+    isReshareDisabledByAuthor: false
   };
 
   if (mediaId) {
-    postBody.specificContent['com.linkedin.ugc.ShareContent'].media = [{
-      status: 'READY',
-      description: {
-        text: 'Image'
-      },
-      media: mediaId,
-      title: {
-        text: 'Project Image'
+    postBody.content = {
+      media: {
+        id: mediaId,
+        title: {
+          text: "Project Image"
+        },
+        altText: "Project Image"
       }
-    }];
+    };
   }
 
   console.log('LinkedIn post payload:', JSON.stringify(postBody, null, 2));
 
   try {
-    const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+    const response = await fetch('https://api.linkedin.com/rest/posts', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202304',
+        'LinkedIn-Version': '202311',
       },
       body: JSON.stringify(postBody),
     });
