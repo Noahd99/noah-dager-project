@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ const SocialMediaContent = ({
   const [platform, setPlatform] = useState<"linkedin" | "twitter">("linkedin");
   const [tone, setTone] = useState<string>("professional");
   const [content, setContent] = useState("");
+  const [includeImage, setIncludeImage] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const { toast } = useToast();
@@ -93,11 +95,12 @@ const SocialMediaContent = ({
   const postContent = async () => {
     setIsPosting(true);
     try {
-      // Only include imageUrl in the payload if it's defined and not empty
       const payload = {
         platform,
         content,
-        ...(imageUrl && imageUrl.trim() !== "" ? { imageUrl } : {}),
+        ...(includeImage && imageUrl && imageUrl.trim() !== ""
+          ? { imageUrl }
+          : {}),
       };
 
       console.log("Posting with payload:", payload);
@@ -194,6 +197,31 @@ const SocialMediaContent = ({
                 className="h-32"
               />
             </div>
+
+            {imageUrl && (
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="include-image"
+                    checked={includeImage}
+                    onCheckedChange={(checked) => setIncludeImage(!!checked)}
+                  />
+                  <label
+                    htmlFor="include-image"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Include project image
+                  </label>
+                </div>
+                {includeImage && (
+                  <img
+                    src={imageUrl}
+                    alt="Project preview"
+                    className="mt-2 h-32 w-auto object-cover rounded"
+                  />
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex gap-2">
