@@ -18,7 +18,7 @@ async function postToLinkedIn(content: string) {
   }
 
   const body = {
-    author: `urn:li:person:${userId}`,
+    author: `urn:li:member:${userId}`, // Changed from person to member
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
