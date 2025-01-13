@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,6 +53,7 @@ const Navbar = () => {
             PROJECTS
           </Link>
           <button
+            onClick={() => navigate("/admin")}
             className="px-4 py-2 text-sm font-medium text-dager-black border border-dager-black rounded-full hover:bg-dager-black hover:text-white transition-all duration-300"
           >
             Login
