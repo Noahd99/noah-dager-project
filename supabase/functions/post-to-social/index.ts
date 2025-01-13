@@ -7,6 +7,7 @@ const corsHeaders = {
 
 async function postToLinkedIn(content: string, imageUrl?: string) {
   console.log('Attempting to post to LinkedIn...');
+  console.log('Image URL received:', imageUrl);
   
   const accessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
   const userId = '506763489';  // LinkedIn member ID
@@ -19,8 +20,8 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
 
   let mediaId: string | undefined;
   
-  if (imageUrl) {
-    console.log('Uploading image to LinkedIn:', imageUrl);
+  if (imageUrl && imageUrl !== 'undefined' && imageUrl !== '') {
+    console.log('Processing image upload to LinkedIn:', imageUrl);
     
     try {
       // First, register the image upload
@@ -53,6 +54,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
       console.log('Upload registration response:', uploadData);
 
       // Download the image
+      console.log('Attempting to download image from:', imageUrl);
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) {
         throw new Error('Failed to download image');
@@ -80,6 +82,8 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
       console.error('Error during image upload:', error);
       throw error;
     }
+  } else {
+    console.log('No valid image URL provided, proceeding without image');
   }
 
   // Create the post using v2 API
