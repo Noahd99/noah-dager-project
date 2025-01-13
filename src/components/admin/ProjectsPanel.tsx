@@ -173,12 +173,15 @@ const ProjectsPanel = () => {
               </div>
             </div>
             
-            <div className="pt-4 border-t">
-              <SocialMediaContent
-                projectId={project.id}
-                projectTitle={project.title}
-                projectDescription={project.description || ""}
-              />
+            <div className="pt-4 mt-4 border-t">
+              <h4 className="font-medium mb-4">Social Media Content</h4>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <SocialMediaContent
+                  projectId={project.id}
+                  projectTitle={project.title}
+                  projectDescription={project.description || ""}
+                />
+              </div>
             </div>
           </div>
         ))}
