@@ -17,62 +17,79 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
 
   console.log('Using LinkedIn User ID:', userId);
 
+  // Validate userId format
+  if (!/^\d+$/.test(userId)) {
+    throw new Error('LinkedIn User ID must be a numeric string');
+  }
+
   let mediaId: string | undefined;
   
   if (imageUrl) {
     console.log('Uploading image to LinkedIn:', imageUrl);
     
-    // First, register the image upload
-    const registerUpload = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0',
-        'LinkedIn-Version': '202304',
-      },
-      body: JSON.stringify({
-        registerUploadRequest: {
-          recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
-          owner: `urn:li:member:${userId}`,
-          serviceRelationships: [{
-            relationshipType: "OWNER",
-            identifier: "urn:li:userGeneratedContent"
-          }]
-        }
-      })
-    });
+    try {
+      // First, register the image upload
+      const registerUpload = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'X-Restli-Protocol-Version': '2.0.0',
+          'LinkedIn-Version': '202304',
+        },
+        body: JSON.stringify({
+          registerUploadRequest: {
+            recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+            owner: `urn:li:member:${userId}`,
+            serviceRelationships: [{
+              relationshipType: "OWNER",
+              identifier: "urn:li:userGeneratedContent"
+            }]
+          }
+        })
+      });
 
-    const uploadData = await registerUpload.json();
-    console.log('Upload registration response:', uploadData);
+      if (!registerUpload.ok) {
+        const errorText = await registerUpload.text();
+        console.error('LinkedIn register upload error:', errorText);
+        throw new Error(`Failed to register image upload: ${errorText}`);
+      }
 
-    if (!registerUpload.ok) {
-      throw new Error(`Failed to register image upload: ${JSON.stringify(uploadData)}`);
+      const uploadData = await registerUpload.json();
+      console.log('Upload registration response:', uploadData);
+
+      // Download the image
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error('Failed to download image');
+      }
+      const imageBlob = await imageResponse.blob();
+
+      // Upload the image to LinkedIn
+      const upload = await fetch(uploadData.value.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: imageBlob
+      });
+
+      if (!upload.ok) {
+        const errorText = await upload.text();
+        console.error('LinkedIn image upload error:', errorText);
+        throw new Error(`Failed to upload image: ${errorText}`);
+      }
+
+      mediaId = uploadData.value.asset;
+      console.log('Successfully uploaded image, got media ID:', mediaId);
+    } catch (error) {
+      console.error('Error during image upload:', error);
+      throw error;
     }
-
-    // Download the image
-    const imageResponse = await fetch(imageUrl);
-    const imageBlob = await imageResponse.blob();
-
-    // Upload the image to LinkedIn
-    const upload = await fetch(uploadData.value.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: imageBlob
-    });
-
-    if (!upload.ok) {
-      throw new Error('Failed to upload image to LinkedIn');
-    }
-
-    mediaId = uploadData.value.asset;
-    console.log('Successfully uploaded image, got media ID:', mediaId);
   }
 
-  const body: any = {
-    author: `urn:li:member:${userId}`, // Changed from person to member
+  const postBody = {
+    author: `urn:li:member:${userId}`,
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
@@ -88,7 +105,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
   };
 
   if (mediaId) {
-    body.specificContent['com.linkedin.ugc.ShareContent'].media = [{
+    postBody.specificContent['com.linkedin.ugc.ShareContent'].media = [{
       status: 'READY',
       description: {
         text: 'Image'
@@ -100,29 +117,34 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
     }];
   }
 
-  console.log('LinkedIn post payload:', JSON.stringify(body, null, 2));
+  console.log('LinkedIn post payload:', JSON.stringify(postBody, null, 2));
 
-  const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      'X-Restli-Protocol-Version': '2.0.0',
-      'LinkedIn-Version': '202304',
-    },
-    body: JSON.stringify(body),
-  });
+  try {
+    const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-Restli-Protocol-Version': '2.0.0',
+        'LinkedIn-Version': '202304',
+      },
+      body: JSON.stringify(postBody),
+    });
 
-  const responseText = await response.text();
-  console.log('LinkedIn API Response Status:', response.status);
-  console.log('LinkedIn API Response Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
-  console.log('LinkedIn API Response Body:', responseText);
+    const responseText = await response.text();
+    console.log('LinkedIn API Response Status:', response.status);
+    console.log('LinkedIn API Response Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+    console.log('LinkedIn API Response Body:', responseText);
 
-  if (!response.ok) {
-    throw new Error(`LinkedIn API error (${response.status}): ${responseText}`);
+    if (!response.ok) {
+      throw new Error(`LinkedIn API error (${response.status}): ${responseText}`);
+    }
+
+    return response.status === 201 ? { success: true } : JSON.parse(responseText);
+  } catch (error) {
+    console.error('Error posting to LinkedIn:', error);
+    throw error;
   }
-
-  return response.status === 201 ? { success: true } : JSON.parse(responseText);
 }
 
 async function postToTwitter(content: string) {
