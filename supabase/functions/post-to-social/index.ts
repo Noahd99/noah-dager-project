@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { create as createHmac } from "https://deno.land/std@0.168.0/hash/hmac.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,6 +50,7 @@ async function postToTwitter(content: string) {
     oauth_version: '1.0',
   };
 
+  // Create HMAC-SHA1 signature using Web Crypto API
   const signingKey = `${encodeURIComponent(Deno.env.get('TWITTER_CONSUMER_SECRET')!)}&${encodeURIComponent(Deno.env.get('TWITTER_ACCESS_TOKEN_SECRET')!)}`;
   
   const baseString = `${method}&${encodeURIComponent(url)}&${encodeURIComponent(
@@ -61,16 +61,23 @@ async function postToTwitter(content: string) {
   )}`;
 
   const encoder = new TextEncoder();
-  const key = encoder.encode(signingKey);
-  const message = encoder.encode(baseString);
-  const hmacKey = await crypto.subtle.importKey(
+  const keyData = encoder.encode(signingKey);
+  const messageData = encoder.encode(baseString);
+
+  const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    key,
+    keyData,
     { name: 'HMAC', hash: 'SHA-1' },
     false,
     ['sign']
   );
-  const signature = await crypto.subtle.sign('HMAC', hmacKey, message);
+
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    cryptoKey,
+    messageData
+  );
+
   const base64Signature = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
   const authHeader = 'OAuth ' + Object.entries({
