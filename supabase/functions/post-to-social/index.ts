@@ -34,7 +34,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
       body: JSON.stringify({
         registerUploadRequest: {
           recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
-          owner: `urn:li:person:${userId}`,
+          owner: `urn:li:member:${userId}`,
           serviceRelationships: [{
             relationshipType: "OWNER",
             identifier: "urn:li:userGeneratedContent"
@@ -72,7 +72,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
   }
 
   const body: any = {
-    author: `urn:li:person:${userId}`,
+    author: `urn:li:member:${userId}`, // Changed from person to member
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
