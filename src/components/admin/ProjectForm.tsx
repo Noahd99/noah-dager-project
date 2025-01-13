@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -41,22 +42,25 @@ const ProjectForm = ({ onSubmit, initialData }: ProjectFormProps) => {
 
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${Math.random()}.${fileExt}`;
 
-      const response = await fetch("/api/upload-media", {
-        method: "POST",
-        body: formData,
-      });
+      const { error: uploadError, data } = await supabase.storage
+        .from('project-media')
+        .upload(filePath, file);
 
-      if (!response.ok) throw new Error("Upload failed");
+      if (uploadError) throw uploadError;
 
-      const { url } = await response.json();
-      setImageUrl(url);
+      const { data: { publicUrl } } = supabase.storage
+        .from('project-media')
+        .getPublicUrl(filePath);
+
+      setImageUrl(publicUrl);
       toast({
         title: "Image uploaded successfully",
       });
     } catch (error) {
+      console.error('Error uploading image:', error);
       toast({
         title: "Failed to upload image",
         variant: "destructive",
@@ -71,20 +75,16 @@ const ProjectForm = ({ onSubmit, initialData }: ProjectFormProps) => {
 
     setIsEnhancing(true);
     try {
-      const response = await fetch("/api/enhance-description", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ description }),
+      const { data, error } = await supabase.functions.invoke('enhance-description', {
+        body: { description }
       });
 
-      if (!response.ok) throw new Error("Enhancement failed");
+      if (error) throw error;
 
-      const { enhancedText } = await response.json();
-      setEnhancedDescription(enhancedText);
+      setEnhancedDescription(data.enhancedText);
       setShowConfirmation(true);
     } catch (error) {
+      console.error('Error enhancing description:', error);
       toast({
         title: "Failed to enhance description",
         variant: "destructive",

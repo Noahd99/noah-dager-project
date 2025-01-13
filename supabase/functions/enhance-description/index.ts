@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@3.2.1"
+import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -14,32 +15,53 @@ serve(async (req) => {
   try {
     const { description } = await req.json()
 
-    const configuration = new Configuration({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
+    // Call OpenAI API to enhance the description
+    const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional content writer specializing in portfolio project descriptions. Enhance the given text to be more engaging and professional while maintaining its core message and keeping a similar length.'
+          },
+          {
+            role: 'user',
+            content: description
+          }
+        ],
+      }),
     })
-    const openai = new OpenAIApi(configuration)
 
-    const prompt = `Please enhance the following project description to make it more professional and engaging, while maintaining its core message. Keep the length similar and focus on clarity and impact:\n\n${description}`
+    const openAiData = await openAiResponse.json()
+    console.log('OpenAI Response:', openAiData)
 
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are a professional content writer specializing in portfolio project descriptions." },
-        { role: "user", content: prompt }
-      ],
-    })
-
-    const enhancedText = completion.data.choices[0]?.message?.content || description
+    const enhancedText = openAiData.choices[0].message.content
 
     return new Response(
       JSON.stringify({ enhancedText }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        } 
+      }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in enhance-description function:', error)
     return new Response(
-      JSON.stringify({ error: 'Failed to enhance description' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500,
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
     )
   }
 })
