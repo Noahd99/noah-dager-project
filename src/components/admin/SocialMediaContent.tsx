@@ -93,24 +93,31 @@ const SocialMediaContent = ({
   const postContent = async () => {
     setIsPosting(true);
     try {
+      // Only include imageUrl in the payload if it's defined and not empty
+      const payload = {
+        platform,
+        content,
+        ...(imageUrl && imageUrl.trim() !== "" ? { imageUrl } : {}),
+      };
+
+      console.log("Posting with payload:", payload);
+
       const { data, error } = await supabase.functions.invoke("post-to-social", {
-        body: { platform, content, imageUrl },
+        body: payload,
       });
 
       if (error) throw error;
 
-      await supabase
-        .from("project_social_content")
-        .insert([
-          {
-            project_id: projectId,
-            platform,
-            content,
-            tone,
-            status: "published",
-            published_at: new Date().toISOString(),
-          },
-        ]);
+      await supabase.from("project_social_content").insert([
+        {
+          project_id: projectId,
+          platform,
+          content,
+          tone,
+          status: "published",
+          published_at: new Date().toISOString(),
+        },
+      ]);
 
       toast({
         title: `Posted successfully to ${platform}`,

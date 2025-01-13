@@ -20,7 +20,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
 
   let mediaId: string | undefined;
   
-  if (imageUrl && imageUrl !== 'undefined' && imageUrl !== '') {
+  if (imageUrl && imageUrl.trim() !== '') {
     console.log('Processing image upload to LinkedIn:', imageUrl);
     
     try {
