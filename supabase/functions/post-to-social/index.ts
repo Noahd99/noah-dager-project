@@ -41,7 +41,9 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
   };
 
   try {
-    console.log('Sending POST request to LinkedIn with body:', JSON.stringify(requestBody));
+    console.log('LinkedIn Request Headers:', JSON.stringify(headers, null, 2));
+    console.log('LinkedIn Request Body:', JSON.stringify(requestBody, null, 2));
+    
     const response = await fetch(baseUrl, {
       method: 'POST',
       headers,
@@ -50,6 +52,7 @@ async function postToLinkedIn(content: string, imageUrl?: string) {
 
     const responseText = await response.text();
     console.log('LinkedIn API Response Status:', response.status);
+    console.log('LinkedIn API Response Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
     console.log('LinkedIn API Response Body:', responseText);
 
     if (!response.ok) {
