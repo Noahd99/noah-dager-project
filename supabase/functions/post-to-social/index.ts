@@ -5,10 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function postToLinkedIn(content: string) {
+async function postToLinkedIn(content: string, imageUrl?: string) {
   console.log('Attempting to post to LinkedIn...');
   
-  const url = 'https://api.linkedin.com/v2/ugcPosts';
   const accessToken = Deno.env.get('LINKEDIN_ACCESS_TOKEN');
   const userId = Deno.env.get('LINKEDIN_USER_ID');
 
@@ -18,26 +17,13 @@ async function postToLinkedIn(content: string) {
 
   console.log('Using LinkedIn User ID:', userId);
 
-  const body = {
-    author: `urn:li:member:${userId}`,
-    lifecycleState: 'PUBLISHED',
-    specificContent: {
-      'com.linkedin.ugc.ShareContent': {
-        shareCommentary: {
-          text: content
-        },
-        shareMediaCategory: 'NONE'
-      }
-    },
-    visibility: {
-      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
-    }
-  };
-
-  console.log('LinkedIn request payload:', JSON.stringify(body, null, 2));
-
-  try {
-    const response = await fetch(url, {
+  let mediaId: string | undefined;
+  
+  if (imageUrl) {
+    console.log('Uploading image to LinkedIn:', imageUrl);
+    
+    // First, register the image upload
+    const registerUpload = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -45,23 +31,98 @@ async function postToLinkedIn(content: string) {
         'X-Restli-Protocol-Version': '2.0.0',
         'LinkedIn-Version': '202304',
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        registerUploadRequest: {
+          recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+          owner: `urn:li:person:${userId}`,
+          serviceRelationships: [{
+            relationshipType: "OWNER",
+            identifier: "urn:li:userGeneratedContent"
+          }]
+        }
+      })
     });
 
-    const responseText = await response.text();
-    console.log('LinkedIn API Response Status:', response.status);
-    console.log('LinkedIn API Response Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
-    console.log('LinkedIn API Response Body:', responseText);
+    const uploadData = await registerUpload.json();
+    console.log('Upload registration response:', uploadData);
 
-    if (!response.ok) {
-      throw new Error(`LinkedIn API error (${response.status}): ${responseText}`);
+    if (!registerUpload.ok) {
+      throw new Error(`Failed to register image upload: ${JSON.stringify(uploadData)}`);
     }
 
-    return response.status === 201 ? { success: true } : JSON.parse(responseText);
-  } catch (error) {
-    console.error('Error in postToLinkedIn:', error);
-    throw error;
+    // Download the image
+    const imageResponse = await fetch(imageUrl);
+    const imageBlob = await imageResponse.blob();
+
+    // Upload the image to LinkedIn
+    const upload = await fetch(uploadData.value.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: imageBlob
+    });
+
+    if (!upload.ok) {
+      throw new Error('Failed to upload image to LinkedIn');
+    }
+
+    mediaId = uploadData.value.asset;
+    console.log('Successfully uploaded image, got media ID:', mediaId);
   }
+
+  const body: any = {
+    author: `urn:li:person:${userId}`,
+    lifecycleState: 'PUBLISHED',
+    specificContent: {
+      'com.linkedin.ugc.ShareContent': {
+        shareCommentary: {
+          text: content
+        },
+        shareMediaCategory: mediaId ? 'IMAGE' : 'NONE'
+      }
+    },
+    visibility: {
+      'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'
+    }
+  };
+
+  if (mediaId) {
+    body.specificContent['com.linkedin.ugc.ShareContent'].media = [{
+      status: 'READY',
+      description: {
+        text: 'Image'
+      },
+      media: mediaId,
+      title: {
+        text: 'Project Image'
+      }
+    }];
+  }
+
+  console.log('LinkedIn post payload:', JSON.stringify(body, null, 2));
+
+  const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+      'X-Restli-Protocol-Version': '2.0.0',
+      'LinkedIn-Version': '202304',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const responseText = await response.text();
+  console.log('LinkedIn API Response Status:', response.status);
+  console.log('LinkedIn API Response Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+  console.log('LinkedIn API Response Body:', responseText);
+
+  if (!response.ok) {
+    throw new Error(`LinkedIn API error (${response.status}): ${responseText}`);
+  }
+
+  return response.status === 201 ? { success: true } : JSON.parse(responseText);
 }
 
 async function postToTwitter(content: string) {
@@ -139,13 +200,14 @@ serve(async (req) => {
 
   try {
     console.log('Received request to post-to-social function');
-    const { platform, content } = await req.json();
+    const { platform, content, imageUrl } = await req.json();
     console.log('Platform:', platform);
     console.log('Content length:', content?.length);
+    console.log('Image URL:', imageUrl);
 
     let result;
     if (platform === 'linkedin') {
-      result = await postToLinkedIn(content);
+      result = await postToLinkedIn(content, imageUrl);
     } else if (platform === 'twitter') {
       result = await postToTwitter(content);
     } else {

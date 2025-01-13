@@ -180,6 +180,7 @@ const ProjectsPanel = () => {
                   projectId={project.id}
                   projectTitle={project.title}
                   projectDescription={project.description || ""}
+                  imageUrl={project.image_url || undefined}
                 />
               </div>
             </div>

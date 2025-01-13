@@ -23,12 +23,14 @@ interface SocialMediaContentProps {
   projectId: string;
   projectTitle: string;
   projectDescription: string;
+  imageUrl?: string;
 }
 
 const SocialMediaContent = ({
   projectId,
   projectTitle,
   projectDescription,
+  imageUrl,
 }: SocialMediaContentProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [platform, setPlatform] = useState<"linkedin" | "twitter">("linkedin");
@@ -92,7 +94,7 @@ const SocialMediaContent = ({
     setIsPosting(true);
     try {
       const { data, error } = await supabase.functions.invoke("post-to-social", {
-        body: { platform, content },
+        body: { platform, content, imageUrl },
       });
 
       if (error) throw error;
