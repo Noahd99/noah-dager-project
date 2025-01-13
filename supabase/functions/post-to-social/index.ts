@@ -19,7 +19,7 @@ async function postToLinkedIn(content: string) {
   console.log('Using LinkedIn User ID:', userId);
 
   const body = {
-    author: `urn:li:person:${userId}`,
+    author: `urn:li:member:${userId}`,
     lifecycleState: 'PUBLISHED',
     specificContent: {
       'com.linkedin.ugc.ShareContent': {
