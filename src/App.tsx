@@ -7,6 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import Navbar from "./components/Navbar";
 import Index from "./pages/Index";
 import Projects from "./pages/Projects";
+import Admin from "./pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/projects" element={<Projects />} />
+            <Route path="/admin" element={<Admin />} />
           </Routes>
         </AnimatePresence>
       </BrowserRouter>
