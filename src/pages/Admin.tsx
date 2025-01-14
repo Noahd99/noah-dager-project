@@ -39,7 +39,7 @@ const Admin = () => {
 
   if (!session) {
     return (
-      <div className="container max-w-md mx-auto mt-32 p-4">
+      <div className="container max-w-md mx-auto pt-20 p-4">
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
