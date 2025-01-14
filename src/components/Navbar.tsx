@@ -68,12 +68,12 @@ const Navbar = () => {
           >
             PROJECTS
           </Link>
-          {!session && (
+          {(!session || location.pathname !== "/admin") && (
             <button
               onClick={() => navigate("/admin")}
               className="px-4 py-2 text-sm font-medium text-dager-black border border-dager-black rounded-full hover:bg-dager-black hover:text-white transition-all duration-300"
             >
-              Login
+              {session ? "Admin Panel" : "Login"}
             </button>
           )}
         </div>
