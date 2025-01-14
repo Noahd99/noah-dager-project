@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
+  const [session, setSession] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -14,6 +16,20 @@ const Navbar = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
@@ -52,12 +68,14 @@ const Navbar = () => {
           >
             PROJECTS
           </Link>
-          <button
-            onClick={() => navigate("/admin")}
-            className="px-4 py-2 text-sm font-medium text-dager-black border border-dager-black rounded-full hover:bg-dager-black hover:text-white transition-all duration-300"
-          >
-            Login
-          </button>
+          {!session && (
+            <button
+              onClick={() => navigate("/admin")}
+              className="px-4 py-2 text-sm font-medium text-dager-black border border-dager-black rounded-full hover:bg-dager-black hover:text-white transition-all duration-300"
+            >
+              Login
+            </button>
+          )}
         </div>
       </div>
     </motion.nav>

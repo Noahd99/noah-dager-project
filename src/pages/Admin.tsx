@@ -39,7 +39,7 @@ const Admin = () => {
 
   if (!session) {
     return (
-      <div className="container max-w-md mx-auto mt-12 p-4">
+      <div className="container max-w-md mx-auto mt-32 p-4">
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
@@ -51,26 +51,29 @@ const Admin = () => {
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Admin Panel</h1>
+    <div className="container mx-auto p-4 mt-24">
+      <div className="flex justify-end mb-6">
         <Button variant="outline" onClick={handleSignOut}>
           Sign Out
         </Button>
       </div>
 
-      <Tabs defaultValue="projects" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="social">Social Media</TabsTrigger>
-        </TabsList>
-        <TabsContent value="projects">
-          <ProjectsPanel />
-        </TabsContent>
-        <TabsContent value="social">
-          <SocialMediaPanel />
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold pl-4">Admin Panel</h1>
+
+        <Tabs defaultValue="projects" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="social">Social Media</TabsTrigger>
+          </TabsList>
+          <TabsContent value="projects">
+            <ProjectsPanel />
+          </TabsContent>
+          <TabsContent value="social">
+            <SocialMediaPanel />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
