@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import Footer from "@/components/Footer";
 
 interface Project {
   id: string;
@@ -33,7 +34,7 @@ const Projects = () => {
   }
 
   return (
-    <div className="min-h-screen bg-dager-white overflow-hidden">
+    <div className="min-h-screen bg-dager-white overflow-hidden flex flex-col">
       <div className="relative h-full w-full flex flex-col md:flex-row pt-24">
         {/* Left side content */}
         <motion.div
@@ -103,6 +104,7 @@ const Projects = () => {
           </div>
         </motion.div>
       </div>
+      <Footer />
     </div>
   );
 };

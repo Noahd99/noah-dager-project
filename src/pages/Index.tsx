@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useEffect } from "react";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   useEffect(() => {
@@ -10,8 +11,8 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="h-screen w-full bg-dager-white overflow-hidden">
-      <div className="relative h-full w-full flex flex-col md:flex-row">
+    <div className="h-screen w-full bg-dager-white overflow-hidden flex flex-col">
+      <div className="relative flex-1 w-full flex flex-col md:flex-row">
         {/* Left side content */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -65,6 +66,7 @@ const Index = () => {
           </div>
         </motion.div>
       </div>
+      <Footer />
     </div>
   );
 };
