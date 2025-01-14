@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, BarChart } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import SocialMediaAnalytics from "./SocialMediaAnalytics";
 
 interface SocialMediaContentProps {
   projectId: string;
@@ -238,6 +239,10 @@ const SocialMediaContent = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <div className="mt-8">
+        <SocialMediaAnalytics projectId={projectId} />
+      </div>
     </>
   );
 };
