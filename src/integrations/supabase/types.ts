@@ -11,37 +11,52 @@ export type Database = {
     Tables: {
       project_social_content: {
         Row: {
+          clicks: number | null
           content: string
           created_at: string
+          engagement_rate: number | null
           id: string
+          likes: number | null
           platform: string
           project_id: string | null
           published_at: string | null
+          shares: number | null
           status: string
           tone: string
           updated_at: string
+          views: number | null
         }
         Insert: {
+          clicks?: number | null
           content: string
           created_at?: string
+          engagement_rate?: number | null
           id?: string
+          likes?: number | null
           platform: string
           project_id?: string | null
           published_at?: string | null
+          shares?: number | null
           status?: string
           tone: string
           updated_at?: string
+          views?: number | null
         }
         Update: {
+          clicks?: number | null
           content?: string
           created_at?: string
+          engagement_rate?: number | null
           id?: string
+          likes?: number | null
           platform?: string
           project_id?: string | null
           published_at?: string | null
+          shares?: number | null
           status?: string
           tone?: string
           updated_at?: string
+          views?: number | null
         }
         Relationships: [
           {

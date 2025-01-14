@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, BarChart } from "lucide-react";
 
 interface SocialMediaContentProps {
   projectId: string;
@@ -95,35 +95,38 @@ const SocialMediaContent = ({
   const postContent = async () => {
     setIsPosting(true);
     try {
-      const payload = {
-        platform,
+      // Save the content first
+      const { data: savedContent, error: saveError } = await supabase
+        .from("project_social_content")
+        .insert([
+          {
+            project_id: projectId,
+            platform,
+            content,
+            tone,
+            status: "published",
+            published_at: new Date().toISOString(),
+            views: 0,
+            likes: 0,
+            shares: 0,
+            clicks: 0,
+            engagement_rate: 0.0,
+          },
+        ])
+        .select()
+        .single();
+
+      if (saveError) throw saveError;
+
+      // Simulate successful API post
+      console.log("Simulating post to", platform, "with content:", {
         content,
-        ...(includeImage && imageUrl && imageUrl.trim() !== ""
-          ? { imageUrl }
-          : {}),
-      };
-
-      console.log("Posting with payload:", payload);
-
-      const { data, error } = await supabase.functions.invoke("post-to-social", {
-        body: payload,
+        imageUrl: includeImage ? imageUrl : undefined,
       });
-
-      if (error) throw error;
-
-      await supabase.from("project_social_content").insert([
-        {
-          project_id: projectId,
-          platform,
-          content,
-          tone,
-          status: "published",
-          published_at: new Date().toISOString(),
-        },
-      ]);
 
       toast({
         title: `Posted successfully to ${platform}`,
+        description: "Note: This is currently in test mode",
       });
       setIsOpen(false);
     } catch (error) {
