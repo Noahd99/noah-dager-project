@@ -1,0 +1,18 @@
+# HTTP client for making API calls
+httpx==0.25.0
+
+# OAuth handling
+oauthlib==3.2.2
+requests-oauthlib==1.3.1
+
+# API integrations
+python-twitter==3.5
+linkedin-api==2.0.0
+
+# Utility packages
+python-dotenv==1.0.0
+pydantic==2.4.2
+
+# Testing
+pytest==7.4.2
+pytest-asyncio==0.21.1
